@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>无水印下载 - 支持抖音/小红书/快手/微博/B站</title>
+  <meta name="description" content="免费在线去水印下载工具，支持抖音、小红书、快手、微博、B站视频和图片无水印下载" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #FF4757;
+      --primary-dark: #e03040;
+      --primary-light: #FF6B81;
+      --bg: #f7f8fa;
+      --card: #fff;
+      --text: #1a1a2e;
+      --muted: #888;
+      --border: #eee;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #FF4757 0%, #c0392b 100%);
+      color: #fff;
+      padding: 40px 20px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    .logo { font-size: 2.4rem; margin-bottom: 8px; }
+    header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    header p { font-size: 0.95rem; opacity: 0.85; }
+    .platforms-badges {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 8px; margin-top: 16px;
+    }
+    .badge {
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      backdrop-filter: blur(4px);
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 720px;
+      margin: -30px auto 0;
+      padding: 0 16px 60px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Input Area ── */
+    .input-card { }
+    .input-label {
+      font-size: 0.9rem; font-weight: 600;
+      color: var(--muted); margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .input-wrap {
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .textarea-wrap {
+      flex: 1;
+      position: relative;
+    }
+    textarea#urlInput {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 52px 14px 16px;
+      font-size: 1rem;
+      resize: none;
+      min-height: 80px;
+      transition: border-color .2s;
+      outline: none;
+      font-family: inherit;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    textarea#urlInput:focus { border-color: var(--primary); }
+    textarea#urlInput::placeholder { color: #bbb; }
+    .paste-icon-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 36px; height: 36px;
+      background: var(--primary);
+      color: #fff;
+      border: none; cursor: pointer;
+      border-radius: 8px;
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, transform .15s;
+      box-shadow: 0 2px 8px rgba(255,71,87,0.3);
+      flex-shrink: 0;
+    }
+    .paste-icon-btn:hover { background: var(--primary-dark); }
+    .paste-icon-btn:active { transform: scale(0.92); }
+    .paste-icon-btn .tooltip {
+      position: absolute;
+      top: calc(100% + 6px); right: 0;
+      background: rgba(0,0,0,0.75);
+      color: #fff; font-size: 0.75rem;
+      padding: 4px 10px; border-radius: 6px;
+      white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity .2s;
+    }
+    .paste-icon-btn:hover .tooltip { opacity: 1; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px;
+      border: none; cursor: pointer;
+      border-radius: 12px;
+      font-size: 1rem; font-weight: 600;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: #fff;
+      padding: 14px 28px;
+      box-shadow: 0 6px 20px rgba(255,71,87,0.35);
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      background: #f0f0f0; color: #555;
+      padding: 10px 20px; font-size: 0.9rem;
+    }
+    .btn-secondary:hover { background: #e5e5e5; }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 10px 20px; font-size: 0.9rem;
+    }
+    .btn-outline:hover { background: #fff0f2; }
+
+    .parse-row {
+      display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+    }
+    #parseBtn { flex: 1; min-width: 160px; }
+
+    /* ── Error ── */
+    .error-box {
+      background: #fff5f5; border: 1px solid #ffd0d5;
+      border-radius: 12px; padding: 14px 18px;
+      color: #e03040; font-size: 0.9rem;
+      display: none; margin-top: 14px;
+    }
+    .error-box.show { display: block; }
+
+    /* ── Loading ── */
+    .loading-box {
+      text-align: center; padding: 40px 20px;
+      display: none;
+    }
+    .loading-box.show { display: block; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid #f3f3f3;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--muted); font-size: 0.95rem; }
+
+    /* ── Result ── */
+    #resultCard { display: none; }
+    #resultCard.show { display: block; }
+    .result-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .platform-tag {
+      display: inline-block;
+      padding: 4px 14px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 700;
+    }
+    .tag-douyin   { background: #f0f0f0; color: #333; }
+    .tag-xhs      { background: #fff0f2; color: #FF4757; }
+    .tag-kuaishou { background: #fff7e6; color: #e07000; }
+    .tag-weibo    { background: #ffe6e6; color: #c0392b; }
+    .tag-bilibili { background: #e6f0ff; color: #1565c0; }
+    .type-tag {
+      background: #f5f5f5; color: #555;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 0.8rem;
+    }
+    .result-title {
+      font-size: 1.05rem; font-weight: 600;
+      line-height: 1.5; margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .result-author { font-size: 0.88rem; color: var(--muted); margin-bottom: 20px; }
+
+    /* 视频预览 */
+    #videoWrap video {
+      width: 100%; border-radius: 12px;
+      background: #000; max-height: 420px;
+      display: block;
+    }
+    .video-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .video-actions .btn { flex: 1; min-width: 140px; }
+
+    /* 图集预览 */
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px; margin-bottom: 16px;
+    }
+    .img-thumb {
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      border-radius: 10px;
+      cursor: zoom-in;
+      transition: transform .2s;
+      width: 100%;
+    }
+    .img-thumb:hover { transform: scale(1.04); }
+    .images-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .images-actions .btn { flex: 1; min-width: 140px; }
+
+    /* 下载进度 */
+    .progress-wrap { margin-top: 14px; }
+    .progress-bar-bg {
+      background: #f0f0f0; border-radius: 10px;
+      height: 8px; overflow: hidden; margin-bottom: 6px;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      height: 100%; border-radius: 10px;
+      transition: width .3s ease;
+    }
+    .progress-text { font-size: 0.85rem; color: var(--muted); }
+
+    /* 成功提示 */
+    .success-tip {
+      background: #f0fff4; border: 1px solid #b7ebc7;
+      border-radius: 10px; padding: 12px 16px;
+      color: #27ae60; font-size: 0.9rem;
+      display: none; margin-top: 12px;
+    }
+    .success-tip.show { display: block; }
+
+    /* ── 使用说明 ── */
+    .guide-card { }
+    .section-title {
+      font-size: 1rem; font-weight: 700;
+      color: var(--text); margin-bottom: 16px;
+    }
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { display: flex; align-items: flex-start; gap: 12px; }
+    .step-num {
+      width: 28px; height: 28px; flex-shrink: 0;
+      background: var(--primary); color: #fff;
+      border-radius: 50%; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700;
+    }
+    .step-text { font-size: 0.9rem; color: #555; line-height: 1.5; padding-top: 4px; }
+
+    /* ── 平台支持 ── */
+    .platforms-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px; text-align: center;
+    }
+    .platform-item { }
+    .platform-icon { font-size: 2rem; display: block; margin-bottom: 6px; }
+    .platform-name { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── Lightbox ── */
+    #lightbox {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    #lightbox.show { display: flex; }
+    #lightbox img {
+      max-width: 94vw; max-height: 90vh;
+      border-radius: 8px; object-fit: contain;
+    }
+    #lightboxClose {
+      position: fixed; top: 20px; right: 20px;
+      background: rgba(255,255,255,0.2);
+      color: #fff; border: none; cursor: pointer;
+      width: 40px; height: 40px; border-radius: 50%;
+      font-size: 1.2rem; display: flex;
+      align-items: center; justify-content: center;
+    }
+    #lightboxPrev, #lightboxNext {
+      position: fixed; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.15);
+      color: #fff; border: none; cursor: pointer;
+      width: 44px; height: 44px; border-radius: 50%;
+      font-size: 1.4rem; display: flex;
+      align-items: center; justify-content: center;
+    }
+    #lightboxPrev { left: 16px; }
+    #lightboxNext { right: 16px; }
+    #lightboxCounter {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.7); font-size: 0.9rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 30px 20px;
+      font-size: 0.82rem; color: #bbb;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      header { padding: 30px 16px 50px; }
+      header h1 { font-size: 1.3rem; }
+      .input-wrap { flex-direction: column; }
+      .platforms-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+      .platform-icon { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">🎬</div>
+  <h1>无水印下载</h1>
+  <p>粘贴链接，一键获取无水印图片 / 视频</p>
+  <div class="platforms-badges">
+    <span class="badge">🎵 抖音</span>
+    <span class="badge">📕 小红书</span>
+    <span class="badge">⚡ 快手</span>
+    <span class="badge">🌐 微博</span>
+    <span class="badge">📺 B站</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- 输入框 -->
+  <div class="card input-card">
+    <div class="input-label">粘贴分享链接</div>
+    <div class="textarea-wrap">
+      <textarea
+        id="urlInput"
+        placeholder="粘贴抖音、小红书、快手、微博、B站的分享链接..."
+        rows="3"
+      ></textarea>
+      <button class="paste-icon-btn" onclick="pasteFromClipboard()" title="粘贴">
+        📋
+        <span class="tooltip">粘贴剪贴板</span>
+      </button>
+    </div>
+    <div class="parse-row">
+      <button class="btn btn-primary" id="parseBtn" onclick="doParseLink()">
+        🔍 立即解析
+      </button>
+      <button class="btn btn-secondary" onclick="clearInput()">清空</button>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- 加载中 -->
+  <div class="card loading-box" id="loadingBox">
+    <div class="spinner"></div>
+    <div class="loading-text">解析中，请稍候...</div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="card" id="resultCard">
+    <div class="result-header">
+      <span class="platform-tag" id="resultPlatformTag"></span>
+      <span class="type-tag" id="resultTypeTag"></span>
+    </div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-author" id="resultAuthor"></div>
+
+    <!-- 视频 -->
+    <div id="videoWrap" style="display:none">
+      <video id="videoPlayer" controls playsinline preload="metadata"></video>
+      <div class="video-actions">
+        <button class="btn btn-primary" id="downloadVideoBtn" onclick="downloadVideo()">
+          💾 下载视频
+        </button>
+        <button class="btn btn-outline" onclick="copyVideoUrl()">
+          🔗 复制链接
+        </button>
+      </div>
+    </div>
+
+    <!-- 图集 -->
+    <div id="imagesWrap" style="display:none">
+      <div class="images-grid" id="imagesGrid"></div>
+      <div class="images-actions">
+        <button class="btn btn-primary" id="downloadAllBtn" onclick="downloadAllImages()">
+          💾 下载全部图片
+        </button>
+        <button class="btn btn-outline" onclick="copyFirstImageUrl()">
+          🔗 复制第一张链接
+        </button>
+      </div>
+      <div class="progress-wrap" id="progressWrap" style="display:none">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+    </div>
+
+    <div class="success-tip" id="successTip"></div>
+  </div>
+
+  <!-- 使用说明 -->
+  <div class="card guide-card">
+    <div class="section-title">📖 使用方法</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">打开抖音/小红书/快手/微博/B站，找到想保存的视频或图文</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">点击「分享」→「复制链接」，获取分享链接</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">将链接粘贴到上方输入框，点击「立即解析」</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">点击「下载视频」或「下载全部图片」保存到本地</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 支持平台 -->
+  <div class="card">
+    <div class="section-title">✅ 支持平台</div>
+    <div class="platforms-grid">
+      <div class="platform-item">
+        <span class="platform-icon">🎵</span>
+        <span class="platform-name">抖音</span>
+      </div>
+      <div class="platform-item">
+        <span class="platform-icon">📕</span>
+        <span class="platform-name">小红书</span>
+      </div>
+      <div class="platform-item">
+        <span class="platform-icon">⚡</span>
+        <span class="platform-name">快手</span>
+      </div>
+      <div class="platform-item">
+        <span class="platform-icon">🌐</span>
+        <span class="platform-name">微博</span>
+      </div>
+      <div class="platform-item">
+        <span class="platform-icon">📺</span>
+        <span class="platform-name">B站</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  仅供个人学习备份使用，请勿传播版权内容 · 本工具免费开源
+</footer>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <button id="lightboxClose" onclick="closeLightbox()">✕</button>
+  <button id="lightboxPrev" onclick="lightboxPrev()">‹</button>
+  <img id="lightboxImg" src="" alt="" />
+  <button id="lightboxNext" onclick="lightboxNext()">›</button>
+  <div id="lightboxCounter"></div>
+</div>
+
+<script>
+// ── 配置 ──────────────────────────────────────────
+const API_BASE = 'https://watermark-remover-backend-production.up.railway.app'
+
+// ── 状态 ──────────────────────────────────────────
+let currentResult = null
+let lightboxImages = []
+let lightboxIndex = 0
+
+// ── 工具函数 ──────────────────────────────────────
+function $(id) { return document.getElementById(id) }
+
+function showError(msg) {
+  const box = $('errorBox')
+  box.textContent = '⚠️ ' + msg
+  box.classList.add('show')
+}
+function hideError() {
+  $('errorBox').classList.remove('show')
+}
+function showLoading() {
+  $('loadingBox').classList.add('show')
+  $('resultCard').classList.remove('show')
+  $('parseBtn').disabled = true
+}
+function hideLoading() {
+  $('loadingBox').classList.remove('show')
+  $('parseBtn').disabled = false
+}
+
+// ── 解析 ──────────────────────────────────────────
+async function doParseLink() {
+  const url = $('urlInput').value.trim()
+  hideError()
+  $('successTip').classList.remove('show')
+
+  if (!url) { showError('请先粘贴分享链接'); return }
+
+  showLoading()
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })
+
+    if (!resp.ok) throw new Error(`服务器错误 (${resp.status})`)
+    const json = await resp.json()
+
+    if (json.code !== 0) {
+      hideLoading()
+      showError(json.message || '解析失败，请检查链接是否正确')
+      return
+    }
+
+    hideLoading()
+    renderResult(json.data)
+  } catch (err) {
+    hideLoading()
+    if (err.message.includes('Failed to fetch')) {
+      showError('无法连接到解析服务，请检查后端是否部署或网络是否正常')
+    } else {
+      showError(err.message)
+    }
+  }
+}
+
+// 回车触发解析
+$('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) doParseLink()
+})
+
+// 粘贴剪贴板内容
+async function pasteFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (text && text.trim()) {
+      $('urlInput').value = text.trim()
+      hideError()
+      $('successTip').classList.remove('show')
+      // 粘贴后按钮短暂变绿给反馈
+      const btn = document.querySelector('.paste-icon-btn')
+      btn.textContent = '✅'
+      btn.style.background = '#27ae60'
+      setTimeout(() => {
+        btn.textContent = '📋'
+        btn.style.background = ''
+        // 补回 tooltip
+        const tip = document.createElement('span')
+        tip.className = 'tooltip'
+        tip.textContent = '粘贴剪贴板'
+        btn.appendChild(tip)
+      }, 1000)
+    } else {
+      showError('剪贴板为空，请先复制分享链接')
+    }
+  } catch (e) {
+    // 部分浏览器需要用户手势才能读剪贴板，降级提示
+    showError('请手动长按输入框选择"粘贴"，或使用 Ctrl+V')
+  }
+}
+
+function clearInput() {
+  $('urlInput').value = ''
+  hideError()
+  $('resultCard').classList.remove('show')
+  $('successTip').classList.remove('show')
+}
+
+// ── 渲染结果 ──────────────────────────────────────
+function renderResult(data) {
+  currentResult = data
+
+  // 平台标签
+  const platformTag = $('resultPlatformTag')
+  platformTag.textContent = data.platformName || data.platform
+  platformTag.className = `platform-tag tag-${data.platform}`
+
+  // 类型标签
+  $('resultTypeTag').textContent = data.type === 'video' ? '🎬 视频' : '🖼 图集'
+
+  // 标题 / 作者
+  $('resultTitle').textContent = data.title || '（无标题）'
+  $('resultAuthor').textContent = data.author ? `👤 ${data.author}` : ''
+
+  // 视频 or 图集
+  $('videoWrap').style.display = 'none'
+  $('imagesWrap').style.display = 'none'
+
+  if (data.type === 'video') {
+    const video = $('videoPlayer')
+    video.src = data.videoUrl
+    video.poster = data.cover || ''
+    $('videoWrap').style.display = 'block'
+  } else {
+    renderImages(data.images || [])
+    $('imagesWrap').style.display = 'block'
+    $('downloadAllBtn').textContent = `💾 下载全部图片（${data.images?.length || 0}张）`
+  }
+
+  $('resultCard').classList.add('show')
+  $('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function renderImages(images) {
+  lightboxImages = images
+  const grid = $('imagesGrid')
+  grid.innerHTML = ''
+  images.forEach((src, i) => {
+    const img = document.createElement('img')
+    img.src = src
+    img.className = 'img-thumb'
+    img.alt = `图片 ${i+1}`
+    img.loading = 'lazy'
+    img.onclick = () => openLightbox(i)
+    grid.appendChild(img)
+  })
+}
+
+// ── 下载视频 ──────────────────────────────────────
+async function downloadVideo() {
+  if (!currentResult?.videoUrl) return
+  const url = currentResult.videoUrl
+  const btn = $('downloadVideoBtn')
+
+  try {
+    btn.disabled = true
+    btn.textContent = '⏬ 下载中...'
+    showSuccess('开始下载，请稍候...')
+
+    // 尝试通过 fetch 下载（解决跨域视频链接）
+    const resp = await fetch(url)
+    if (!resp.ok) throw new Error('下载失败')
+    const blob = await resp.blob()
+    const blobUrl = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `video_${Date.now()}.mp4`
+    a.click()
+    URL.revokeObjectURL(blobUrl)
+    showSuccess('✅ 视频下载成功！')
+  } catch {
+    // 降级：直接打开链接让浏览器下载
+    window.open(url, '_blank')
+    showSuccess('✅ 已在新窗口打开，请右键另存为')
+  } finally {
+    btn.disabled = false
+    btn.textContent = '💾 下载视频'
+  }
+}
+
+function copyVideoUrl() {
+  if (!currentResult?.videoUrl) return
+  copyToClipboard(currentResult.videoUrl, '视频链接已复制')
+}
+
+// ── 下载图片 ──────────────────────────────────────
+async function downloadAllImages() {
+  const images = currentResult?.images
+  if (!images || images.length === 0) return
+
+  const btn = $('downloadAllBtn')
+  btn.disabled = true
+  $('progressWrap').style.display = 'block'
+
+  let done = 0
+  for (let i = 0; i < images.length; i++) {
+    try {
+      await downloadSingleImage(images[i], i + 1)
+    } catch (e) {
+      console.warn('下载图片失败', e)
+    }
+    done++
+    const pct = Math.round((done / images.length) * 100)
+    $('progressFill').style.width = pct + '%'
+    $('progressText').textContent = `${done} / ${images.length} 已下载`
+  }
+
+  btn.disabled = false
+  showSuccess(`✅ 全部 ${images.length} 张图片下载完成！`)
+}
+
+async function downloadSingleImage(url, index) {
+  try {
+    const resp = await fetch(url)
+    const blob = await resp.blob()
+    const ext = blob.type.includes('png') ? 'png' : 'jpg'
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `image_${index}.${ext}`
+    a.click()
+    URL.revokeObjectURL(blobUrl)
+    // 间隔 300ms 避免浏览器拦截批量下载
+    await delay(300)
+  } catch {
+    window.open(url, '_blank')
+    await delay(300)
+  }
+}
+
+function copyFirstImageUrl() {
+  const img = currentResult?.images?.[0]
+  if (img) copyToClipboard(img, '图片链接已复制')
+}
+
+// ── 工具 ──────────────────────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+function copyToClipboard(text, msg) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showSuccess('✅ ' + msg))
+  } else {
+    const el = document.createElement('textarea')
+    el.value = text
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+    showSuccess('✅ ' + msg)
+  }
+}
+
+function showSuccess(msg) {
+  const tip = $('successTip')
+  tip.textContent = msg
+  tip.classList.add('show')
+  setTimeout(() => tip.classList.remove('show'), 4000)
+}
+
+// ── Lightbox ──────────────────────────────────────
+function openLightbox(index) {
+  lightboxIndex = index
+  updateLightbox()
+  $('lightbox').classList.add('show')
+  document.body.style.overflow = 'hidden'
+}
+function closeLightbox() {
+  $('lightbox').classList.remove('show')
+  document.body.style.overflow = ''
+}
+function updateLightbox() {
+  $('lightboxImg').src = lightboxImages[lightboxIndex]
+  $('lightboxCounter').textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`
+}
+function lightboxPrev() {
+  lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length
+  updateLightbox()
+}
+function lightboxNext() {
+  lightboxIndex = (lightboxIndex + 1) % lightboxImages.length
+  updateLightbox()
+}
+// 键盘控制
+document.addEventListener('keydown', e => {
+  if (!$('lightbox').classList.contains('show')) return
+  if (e.key === 'ArrowLeft') lightboxPrev()
+  if (e.key === 'ArrowRight') lightboxNext()
+  if (e.key === 'Escape') closeLightbox()
+})
+// 点击背景关闭
+$('lightbox').addEventListener('click', e => {
+  if (e.target === $('lightbox')) closeLightbox()
+})
+</script>
+</body>
+</html>
