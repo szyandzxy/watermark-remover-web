@@ -510,7 +510,7 @@
 
 <script>
 // ── 配置 ──────────────────────────────────────────
-const API_BASE = 'https://1304317145-hunob9q8pp.ap-guangzhou.tencentscf.com'
+const API_BASE = 'https://watermark-remover-backend-production.up.railway.app'
 
 // ── 状态 ──────────────────────────────────────────
 let currentResult = null
@@ -697,9 +697,31 @@ function renderImages(images) {
 async function downloadVideo() {
   if (!currentResult?.videoUrl) return
   const url = currentResult.videoUrl
-  // 直接新窗口打开，iOS长按保存，PC右键另存为
-  window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
-  showSuccess('✅ 已在新窗口打开，长按视频保存（iOS）或右键另存为（PC）')
+  const btn = $('downloadVideoBtn')
+  btn.disabled = true
+  btn.textContent = '⏬ 下载中...'
+  showSuccess('开始下载，请稍候...')
+  try {
+    const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
+    const resp = await fetch(proxyUrl)
+    if (!resp.ok) throw new Error('下载失败')
+    const blob = await resp.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `video_${Date.now()}.mp4`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000)
+    showSuccess('✅ 视频下载成功！')
+  } catch (e) {
+    window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
+    showSuccess('✅ 已在新窗口打开，请右键另存为')
+  } finally {
+    btn.disabled = false
+    btn.textContent = '💾 下载视频'
+  }
 }
 
 function copyVideoUrl() {
@@ -730,13 +752,29 @@ async function downloadAllImages() {
   }
 
   btn.disabled = false
-  showSuccess(`✅ 已逐张在新窗口打开，请长按保存（iOS）或右键另存为（PC）`)
+  showSuccess(`✅ 全部 ${images.length} 张图片下载完成！`)
 }
 
 async function downloadSingleImage(url, index) {
-  // 新窗口打开代理URL，iOS长按保存，PC右键另存为
-  window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
-  await delay(800)
+  try {
+    const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
+    const resp = await fetch(proxyUrl)
+    if (!resp.ok) throw new Error('下载失败')
+    const blob = await resp.blob()
+    const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg'
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `image_${index}.${ext}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    await delay(600)
+  } catch (e) {
+    window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
+    await delay(600)
+  }
 }
 
 function copyFirstImageUrl() {
