@@ -527,7 +527,9 @@ function showError(msg) {
 function hideError() {
   $('errorBox').classList.remove('show')
 }
-function showLoading() {
+function showLoading(msg) {
+  const el = $('loadingBox').querySelector('.loading-text')
+  if (el) el.textContent = msg || '解析中，请稍候...'
   $('loadingBox').classList.add('show')
   $('resultCard').classList.remove('show')
   $('parseBtn').disabled = true
@@ -545,14 +547,19 @@ async function doParseLink() {
 
   if (!url) { showError('请先粘贴分享链接'); return }
 
-  showLoading()
+  showLoading('解析中，首次请求可能需要10秒...')
 
   try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 30000)
+
     const resp = await fetch(`${API_BASE}/api/parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url }),
+      signal: controller.signal
     })
+    clearTimeout(timer)
 
     if (!resp.ok) throw new Error(`服务器错误 (${resp.status})`)
     const json = await resp.json()
@@ -567,7 +574,9 @@ async function doParseLink() {
     renderResult(json.data)
   } catch (err) {
     hideLoading()
-    if (err.message.includes('Failed to fetch')) {
+    if (err.name === 'AbortError') {
+      showError('请求超时（30秒），请稍后重试')
+    } else if (err.message.includes('Failed to fetch')) {
       showError('无法连接到解析服务，请检查后端是否部署或网络是否正常')
     } else {
       showError(err.message)
