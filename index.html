@@ -542,11 +542,15 @@ function hideLoading() {
 
 // ── 解析 ──────────────────────────────────────────
 async function doParseLink() {
-  const url = $('urlInput').value.trim()
+  let url = $('urlInput').value.trim()
   hideError()
   $('successTip').classList.remove('show')
 
   if (!url) { showError('请先粘贴分享链接'); return }
+
+  // 自动从文字中提取链接（兼容"文字+链接"的分享格式）
+  const urlMatch = url.match(/https?:\/\/[^\s\u4e00-\u9fa5，。！？、…]+/)
+  if (urlMatch) url = urlMatch[0].trim()
 
   showLoading('解析中，首次请求可能需要10秒...')
 
