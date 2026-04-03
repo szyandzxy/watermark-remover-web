@@ -697,33 +697,10 @@ function renderImages(images) {
 async function downloadVideo() {
   if (!currentResult?.videoUrl) return
   const url = currentResult.videoUrl
-  const btn = $('downloadVideoBtn')
-
-  try {
-    btn.disabled = true
-    btn.textContent = '⏬ 下载中...'
-    showSuccess('开始下载，请稍候...')
-
-    // 尝试通过 fetch 下载（解决跨域视频链接）
-    const resp = await fetch(url)
-    if (!resp.ok) throw new Error('下载失败')
-    const blob = await resp.blob()
-    const blobUrl = URL.createObjectURL(blob)
-
-    const a = document.createElement('a')
-    a.href = blobUrl
-    a.download = `video_${Date.now()}.mp4`
-    a.click()
-    URL.revokeObjectURL(blobUrl)
-    showSuccess('✅ 视频下载成功！')
-  } catch {
-    // 降级：直接打开链接让浏览器下载
-    window.open(url, '_blank')
-    showSuccess('✅ 已在新窗口打开，请右键另存为')
-  } finally {
-    btn.disabled = false
-    btn.textContent = '💾 下载视频'
-  }
+  // 直接新窗口打开，iOS长按保存，PC右键另存为
+  window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
+  showSuccess('✅ 已在新窗口打开，长按视频保存（iOS）或右键另存为（PC）')
+}
 }
 
 function copyVideoUrl() {
@@ -754,31 +731,13 @@ async function downloadAllImages() {
   }
 
   btn.disabled = false
-  showSuccess(`✅ 全部 ${images.length} 张图片下载完成！`)
+  showSuccess(`✅ 已逐张在新窗口打开，请长按保存（iOS）或右键另存为（PC）`)
 }
 
 async function downloadSingleImage(url, index) {
-  try {
-    // 走后端代理下载，解决跨域和 HTTPS 混合内容问题
-    const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
-    const resp = await fetch(proxyUrl)
-    if (!resp.ok) throw new Error('代理下载失败')
-    const blob = await resp.blob()
-    const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg')
-    const blobUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = blobUrl
-    a.download = `image_${index}.${ext}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(blobUrl)
-    await delay(500)
-  } catch (e) {
-    // 降级：新窗口打开让用户手动保存
-    window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
-    await delay(500)
-  }
+  // 新窗口打开代理URL，iOS长按保存，PC右键另存为
+  window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
+  await delay(800)
 }
 
 function copyFirstImageUrl() {
