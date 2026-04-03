@@ -684,7 +684,7 @@ function renderImages(images) {
   grid.innerHTML = ''
   images.forEach((src, i) => {
     const img = document.createElement('img')
-    img.src = src
+    img.src = `${API_BASE}/proxy?url=${encodeURIComponent(src)}`
     img.className = 'img-thumb'
     img.alt = `图片 ${i+1}`
     img.loading = 'lazy'
@@ -759,20 +759,25 @@ async function downloadAllImages() {
 
 async function downloadSingleImage(url, index) {
   try {
-    const resp = await fetch(url)
+    // 走后端代理下载，解决跨域和 HTTPS 混合内容问题
+    const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
+    const resp = await fetch(proxyUrl)
+    if (!resp.ok) throw new Error('代理下载失败')
     const blob = await resp.blob()
-    const ext = blob.type.includes('png') ? 'png' : 'jpg'
+    const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg')
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
     a.download = `image_${index}.${ext}`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(blobUrl)
-    // 间隔 300ms 避免浏览器拦截批量下载
-    await delay(300)
-  } catch {
-    window.open(url, '_blank')
-    await delay(300)
+    await delay(500)
+  } catch (e) {
+    // 降级：新窗口打开让用户手动保存
+    window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
+    await delay(500)
   }
 }
 
