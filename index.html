@@ -701,7 +701,6 @@ async function downloadVideo() {
   window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
   showSuccess('✅ 已在新窗口打开，长按视频保存（iOS）或右键另存为（PC）')
 }
-}
 
 function copyVideoUrl() {
   if (!currentResult?.videoUrl) return
