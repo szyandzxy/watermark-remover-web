@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>无水印下载 - 支持抖音/小红书/快手/微博/B站</title>
   <meta name="description" content="免费在线去水印下载工具，支持抖音、小红书、快手、微博、B站视频和图片无水印下载" />
   <style>
@@ -32,7 +32,8 @@
     header {
       background: linear-gradient(135deg, #FF4757 0%, #c0392b 100%);
       color: #fff;
-      padding: 40px 20px 60px;
+      padding: env(safe-area-inset-top, 20px) 20px 60px;
+      padding-top: max(env(safe-area-inset-top, 20px), 40px);
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -375,7 +376,7 @@
     <div class="textarea-wrap">
       <textarea
         id="urlInput"
-        placeholder="粘贴抖音、小红书、快手、微博、B站的分享链接..."
+        placeholder="粘贴抖音、小红书、快手、微博、B站的分享链接...&#10;iOS 用户：长按此处选「粘贴」"
         rows="3"
       ></textarea>
       <button class="paste-icon-btn" onclick="pasteFromClipboard()" title="粘贴">
@@ -591,32 +592,44 @@ $('urlInput').addEventListener('keydown', e => {
 
 // 粘贴剪贴板内容
 async function pasteFromClipboard() {
-  try {
-    const text = await navigator.clipboard.readText()
-    if (text && text.trim()) {
-      $('urlInput').value = text.trim()
-      hideError()
-      $('successTip').classList.remove('show')
-      // 粘贴后按钮短暂变绿给反馈
-      const btn = document.querySelector('.paste-icon-btn')
-      btn.textContent = '✅'
-      btn.style.background = '#27ae60'
-      setTimeout(() => {
-        btn.textContent = '📋'
-        btn.style.background = ''
-        // 补回 tooltip
-        const tip = document.createElement('span')
-        tip.className = 'tooltip'
-        tip.textContent = '粘贴剪贴板'
-        btn.appendChild(tip)
-      }, 1000)
-    } else {
-      showError('剪贴板为空，请先复制分享链接')
-    }
-  } catch (e) {
-    // 部分浏览器需要用户手势才能读剪贴板，降级提示
-    showError('请手动长按输入框选择"粘贴"，或使用 Ctrl+V')
+  const input = $('urlInput')
+  input.focus()
+
+  // 方案1：现代 Clipboard API（Android Chrome / 桌面）
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text && text.trim()) {
+        input.value = text.trim()
+        hideError()
+        flashPasteBtn()
+        return
+      }
+    } catch (e) { /* 权限不足，走下一方案 */ }
   }
+
+  // 方案2：execCommand paste（部分旧浏览器）
+  try {
+    input.select()
+    const ok = document.execCommand('paste')
+    if (ok && input.value.trim()) { hideError(); flashPasteBtn(); return }
+  } catch (e) {}
+
+  // 方案3：iOS Safari 无法自动读剪贴板，提示手动操作
+  // 先把输入框选中，用户可直接长按点粘贴
+  input.select()
+  showError('请长按输入框，选择「粘贴」即可 📋')
+}
+
+function flashPasteBtn() {
+  const btn = document.querySelector('.paste-icon-btn')
+  if (!btn) return
+  btn.textContent = '✅'
+  btn.style.background = '#27ae60'
+  setTimeout(() => {
+    btn.innerHTML = '📋<span class="tooltip">粘贴剪贴板</span>'
+    btn.style.background = ''
+  }, 1000)
 }
 
 function clearInput() {
