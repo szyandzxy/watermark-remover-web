@@ -700,12 +700,22 @@ async function downloadVideo() {
   const btn = $('downloadVideoBtn')
   btn.disabled = true
   btn.textContent = '⏬ 下载中...'
-  showSuccess('开始下载，请稍候...')
+  showSuccess('下载中，请稍候...')
   try {
     const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
     const resp = await fetch(proxyUrl)
     if (!resp.ok) throw new Error('下载失败')
     const blob = await resp.blob()
+    const file = new File([blob], `video_${Date.now()}.mp4`, { type: 'video/mp4' })
+
+    // iOS/Android：Web Share API
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: '视频' })
+      showSuccess('✅ 请在分享菜单中选择「存储视频」')
+      return
+    }
+
+    // 桌面端：直接下载
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
@@ -716,6 +726,7 @@ async function downloadVideo() {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 2000)
     showSuccess('✅ 视频下载成功！')
   } catch (e) {
+    if (e.name === 'AbortError') { showSuccess('已取消'); return }
     window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
     showSuccess('✅ 已在新窗口打开，请右键另存为')
   } finally {
@@ -737,31 +748,66 @@ async function downloadAllImages() {
   const btn = $('downloadAllBtn')
   btn.disabled = true
   $('progressWrap').style.display = 'block'
+  $('progressText').textContent = '准备中...'
 
-  let done = 0
+  // 先下载所有图片为 blob
+  const files = []
   for (let i = 0; i < images.length; i++) {
     try {
-      await downloadSingleImage(images[i], i + 1)
-    } catch (e) {
-      console.warn('下载图片失败', e)
-    }
-    done++
-    const pct = Math.round((done / images.length) * 100)
+      const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(images[i])}`
+      const resp = await fetch(proxyUrl)
+      const blob = await resp.blob()
+      const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg'
+      files.push(new File([blob], `image_${i+1}.${ext}`, { type: blob.type }))
+    } catch (e) { console.warn('下载图片失败', e) }
+    const pct = Math.round(((i+1) / images.length) * 100)
     $('progressFill').style.width = pct + '%'
-    $('progressText').textContent = `${done} / ${images.length} 已下载`
+    $('progressText').textContent = `${i+1} / ${images.length} 已准备`
+  }
+
+  // iOS：一次性用 Web Share API 分享所有图片
+  if (files.length > 0 && navigator.share && navigator.canShare && navigator.canShare({ files })) {
+    try {
+      await navigator.share({ files, title: '图片' })
+      showSuccess('✅ 请在分享菜单中选择「存储图像」保存到相册')
+    } catch (e) {
+      if (e.name !== 'AbortError') showSuccess('分享失败，请逐张点击图片保存')
+    }
+  } else {
+    // 桌面端：逐个触发下载
+    for (let i = 0; i < files.length; i++) {
+      const blobUrl = URL.createObjectURL(files[i])
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = files[i].name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+      await delay(600)
+    }
+    showSuccess(`✅ 全部 ${files.length} 张图片下载完成！`)
   }
 
   btn.disabled = false
-  showSuccess(`✅ 全部 ${images.length} 张图片下载完成！`)
 }
 
 async function downloadSingleImage(url, index) {
+  const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
   try {
-    const proxyUrl = `${API_BASE}/proxy?url=${encodeURIComponent(url)}`
     const resp = await fetch(proxyUrl)
     if (!resp.ok) throw new Error('下载失败')
     const blob = await resp.blob()
     const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg'
+    const file = new File([blob], `image_${index}.${ext}`, { type: blob.type })
+
+    // iOS/Android：用 Web Share API 触发系统分享（含"存储图像"）
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `图片 ${index}` })
+      return
+    }
+
+    // 桌面端：直接下载
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
@@ -770,11 +816,12 @@ async function downloadSingleImage(url, index) {
     a.click()
     document.body.removeChild(a)
     setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
-    await delay(600)
   } catch (e) {
-    window.open(`${API_BASE}/proxy?url=${encodeURIComponent(url)}`, '_blank')
-    await delay(600)
+    if (e.name === 'AbortError') return // 用户取消分享，不算错误
+    // 最终降级：新窗口打开
+    window.open(proxyUrl, '_blank')
   }
+  await delay(600)
 }
 
 function copyFirstImageUrl() {
